@@ -1,8 +1,11 @@
 using Barbearia.API.DBContext;
+using Barbearia.API.Infrastructure;
+using Barbearia.API.Models;
 using Barbearia.API.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -63,8 +66,26 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
 
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConfig.Configuration;
+    options.InstanceName = redisConfig.InstanceName;
+});
+
+// Registro genérico
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+// Registro específico para decoração
+builder.Services.AddScoped<IRepository<Servico>, Repository<Servico>>();
+
+// Decorando o serviço específico
+builder.Services.Decorate<IRepository<Servico>, CachedServicoRepository>();
+
+
+
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters

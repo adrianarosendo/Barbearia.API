@@ -1,8 +1,11 @@
 ﻿using Barbearia.API.DTO;
+using Barbearia.API.Infrastructure;
 using Barbearia.API.Models;
 using Barbearia.API.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace Barbearia.API.Controllers
 {
@@ -13,9 +16,12 @@ namespace Barbearia.API.Controllers
     {
         private readonly IRepository<Servico> _repository;
 
-        public ServicoController (IRepository<Servico> repository)
+        private readonly IDistributedCache _distributedCache;
+
+        public ServicoController (IRepository<Servico> repository, IDistributedCache cache)
         {
             _repository = repository;
+            _distributedCache = cache;
         }
 
         [HttpGet]
@@ -23,8 +29,9 @@ namespace Barbearia.API.Controllers
         {
             var servicos = await _repository.GetAllAsync();
             return Ok(servicos);
-
         }
+
+        
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -51,7 +58,9 @@ namespace Barbearia.API.Controllers
                 servico.Preco = servicoDTO.Preco;
                 servico.DuracaoMin = servicoDTO.DuracaoMin;
                 await _repository.AddAsync(servico);
+
                 return CreatedAtAction(nameof(GetById), new { id = servico.Id }, servico);
+
 
 
             }
